@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-router": "^1.26.20",
+    "@tanstack/router-devtools": "^1.27.0",
+    "@tanstack/router-vite-plugin": "^1.26.21",
+    "firebase": "^10.11.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
