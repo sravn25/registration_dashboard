@@ -4,7 +4,7 @@ interface AlertProps {
   message: string;
 }
 
-export const StudentIdAlert: React.FC<AlertProps> = ({ message }) => {
+export const Alert: React.FC<AlertProps> = ({ message }) => {
   return (
     <div
       role="alert"

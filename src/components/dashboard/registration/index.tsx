@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { StudentIdAlert } from "../error";
 import { Ticket, addRegistration } from "../../../firebase/firestore";
+import { Alert } from "../../error";
 
 export default function Registration() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -26,6 +26,7 @@ export default function Registration() {
     setIsOpen(false);
     setStudentId("");
     setTicketId("");
+    setError("");
   };
 
   return (
@@ -125,7 +126,7 @@ export default function Registration() {
                     Register
                   </button>
                 </div>
-                {error && <StudentIdAlert message={error} />}
+                {error && <Alert message={error} />}
               </form>
             </div>
           </div>
