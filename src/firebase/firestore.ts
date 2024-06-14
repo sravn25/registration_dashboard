@@ -1,4 +1,11 @@
-import { collection, addDoc, getDocs, where, query } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  where,
+  query,
+  Timestamp,
+} from "firebase/firestore";
 import { fsdb } from "./config";
 
 export interface Ticket {
@@ -6,10 +13,18 @@ export interface Ticket {
   ticketId: string;
 }
 
+export interface TicketData {
+  ticket: Ticket;
+  registered: boolean;
+  createdAt: string;
+}
+
 export const addRegistration = async (ticket: Ticket) => {
   try {
     const docRef = await addDoc(collection(fsdb, "registrations"), {
       ticket,
+      registered: false,
+      createdAt: Timestamp.now(),
     });
     console.log("Document successfully written with ID: ", docRef.id);
   } catch (e) {
@@ -40,9 +55,9 @@ export const getStudentIdByTicketId = async (ticketId: string) => {
 
   querySnapshot.forEach((doc) => {
     const data = doc.data();
-    console.log(`Student ID: ${data.studentId}`);
     console.log(`Student ID: ${JSON.stringify(data, null, 2)}`);
     console.log(data.ticket.studentId);
+    return JSON.stringify(data, null, 2);
   });
 };
 
