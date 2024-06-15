@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { TicketData, getTicket } from "../../../firebase/firestore";
+import React, { useState, useEffect, useCallback } from "react";
+import { TicketData } from "../../../firebase/firestore";
 import {
   Timestamp,
   collection,
@@ -8,56 +8,108 @@ import {
   orderBy,
   query,
   startAfter,
+  where,
 } from "firebase/firestore";
 import { fsdb } from "../../../firebase/config";
 
 const PAGE_SIZE = 10;
 
-export default function Table() {
+const Table: React.FC = () => {
   const [tickets, setTickets] = useState<TicketData[]>([]);
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [isLoading, setLoading] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [hasMore, setHasMore] = useState<boolean>(true);
 
-  const initFetch = async () => {
+  const initFetch = useCallback(async () => {
     setLoading(true);
     const q = query(
       collection(fsdb, "registrations"),
-      orderBy("ticket.studentId"),
+      orderBy("ticket.ticketId"),
       limit(PAGE_SIZE),
     );
     const querySnapshot = await getDocs(q);
-    const ticketsList: TicketData[] = [];
-    querySnapshot.forEach((doc) => {
-      console.log(doc.data());
-      ticketsList.push(doc.data());
-    });
+    const ticketsList: TicketData[] = querySnapshot.docs.map(
+      (doc) => doc.data() as TicketData,
+    );
+
     setTickets(ticketsList);
     setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+    setHasMore(querySnapshot.docs.length === PAGE_SIZE);
     setLoading(false);
+  }, []);
+
+  const fetchSearchData = async (search: string) => {
+    setLoading(true);
+    try {
+      const q = query(
+        collection(fsdb, "registrations"),
+        where("ticket.ticketId", "==", search),
+        orderBy("ticket.ticketId"),
+        limit(PAGE_SIZE),
+      );
+      const querySnapshot = await getDocs(q);
+      const ticketsList: TicketData[] = querySnapshot.docs.map(
+        (doc) => doc.data() as TicketData,
+      );
+
+      const remainingTicketsQuery = query(
+        collection(fsdb, "registrations"),
+        orderBy("ticket.ticketId"),
+        limit(PAGE_SIZE),
+      );
+      const remaningQuerySnapshot = await getDocs(remainingTicketsQuery);
+      const remainingTickets: TicketData[] = remaningQuerySnapshot.docs
+        .map((doc) => doc.data() as TicketData)
+        .filter((ticket) => ticket.ticket.ticketId !== search);
+
+      setTickets([...ticketsList, ...remainingTickets]);
+      setLastVisible(
+        remaningQuerySnapshot.docs[remaningQuerySnapshot.docs.length - 1],
+      );
+      setHasMore(remaningQuerySnapshot.docs.length === PAGE_SIZE);
+    } catch (error) {
+      console.log("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const fetchMoreData = async () => {
-    if (!lastVisible) return;
-    setLoading(true);
-    const q = query(
-      collection(fsdb, "Registrations"),
-      orderBy("ticket.studentId"),
-      startAfter(lastVisible),
-      limit(PAGE_SIZE),
-    );
-    const querySnapshot = await getDocs(q);
-    const newTickets: TicketData[] = [];
-    querySnapshot.forEach((doc) => {
-      newTickets.push(doc.data().ticket);
-    });
-    setTickets([...tickets, ...newTickets]);
-    setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
-    setLoading(false);
-  };
+  const fetchMoreData = useCallback(async () => {
+    if (lastVisible && !isLoading && hasMore) {
+      setLoading(true);
+      const q = query(
+        collection(fsdb, "registrations"),
+        orderBy("tickets.ticketId"),
+        startAfter(lastVisible),
+        limit(PAGE_SIZE),
+      );
+      const querySnapshot = await getDocs(q);
+      const ticketsList: TicketData[] = querySnapshot.docs.map(
+        (doc) => doc.data() as TicketData,
+      );
+      setTickets((prevTickets) => [...prevTickets, ...ticketsList]);
+      setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+      setHasMore(querySnapshot.docs.length === PAGE_SIZE);
+      setLoading(false);
+    }
+  }, [lastVisible, isLoading, hasMore]);
 
   useEffect(() => {
     initFetch();
-  }, []);
+  }, [initFetch]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setSearchTerm(e.target.value);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim() === "") {
+      initFetch();
+    } else {
+      fetchSearchData(searchTerm);
+    }
+  };
 
   return (
     <div>
@@ -66,6 +118,36 @@ export default function Table() {
       </h1>
 
       <div className="overflow-x-auto p-16">
+        <div className="flex gap-4 pb-8">
+          <form onSubmit={handleSearchSubmit}>
+            <label htmlFor="search" className="sr-only">
+              Ticket ID
+            </label>
+
+            <div className="flex gap-4">
+              <input
+                type="number"
+                className=" rounded-lg border-gray-200 p-4 pe-12 text-sm shadow-sm"
+                placeholder="Enter Ticket ID"
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 text-white rounded bg-blue-500"
+              >
+                Search
+              </button>
+            </div>
+          </form>
+          <button
+            className="px-4 py-2 text-white rounded bg-indigo-500"
+            onClick={initFetch}
+          >
+            Refresh
+          </button>
+        </div>
+
         <table className="min-w-full divide-y-2 divide-gray-200 bg-white text-sm text-center">
           <thead className="ltr:text-left rtl:text-right">
             <tr>
@@ -87,9 +169,10 @@ export default function Table() {
 
           <tbody className="divide-y divide-gray-200">
             {tickets.map((ticket, index) => {
-              if (ticket.createdAt instanceof Timestamp) {
-                ticket.createdAt = ticket.createdAt.toDate().toISOString();
-              }
+              const createdAt =
+                ticket.createdAt instanceof Timestamp
+                  ? ticket.createdAt.toDate().toString()
+                  : ticket.createdAt;
               return (
                 <tr key={index}>
                   <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
@@ -102,7 +185,7 @@ export default function Table() {
                     {ticket.registered ? <span>Yes</span> : <span>No</span>}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-gray-700">
-                    {ticket.createdAt}
+                    {createdAt}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2">
                     <a
@@ -117,14 +200,18 @@ export default function Table() {
             })}
           </tbody>
         </table>
-        <button
-          onClick={fetchMoreData}
-          className="mt-4 px-4 py-2 bg-blue-500 text-sm text-white font-medium rounded hover:bg-blue-700"
-          disabled={isLoading}
-        >
-          {isLoading ? "Loading..." : "Load More"}
-        </button>
+        {hasMore && (
+          <button
+            onClick={fetchMoreData}
+            className="mt-4 px-4 py-2 bg-blue-500 text-sm text-white font-medium rounded hover:bg-blue-700"
+            disabled={isLoading}
+          >
+            {isLoading ? "Loading..." : "Load More"}
+          </button>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default Table;
