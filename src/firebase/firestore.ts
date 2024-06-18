@@ -15,6 +15,7 @@ export interface Ticket {
 
 export interface TicketData {
   ticket: Ticket;
+  id: string;
   registered: boolean;
   createdAt: string;
 }

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Ticket, addRegistration } from "../../../firebase/firestore";
 import { Alert } from "../../error";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function Registration() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -12,12 +13,16 @@ export default function Registration() {
     e.preventDefault();
     if (studentId.length !== 7) {
       setError("Student ID must be 7 digits");
+      toast.error("Student ID must be 7 digits");
       return;
     }
     setError("");
 
     const newTicket: Ticket = { studentId, ticketId };
     addRegistration(newTicket);
+    toast.success(
+      `Ticket ${newTicket.ticketId} created for ${newTicket.studentId}`,
+    );
     setStudentId("");
     setTicketId("");
   };
@@ -132,6 +137,7 @@ export default function Registration() {
           </div>
         </dialog>
       )}
+      <Toaster />
     </div>
   );
 }

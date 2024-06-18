@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { FaCheck, FaXmark } from "react-icons/fa6";
-import { TicketData } from "../../../firebase/firestore";
+import { Ticket, TicketData } from "../../../firebase/firestore";
 import {
+  doc,
   Timestamp,
   collection,
   getDocs,
@@ -10,8 +11,10 @@ import {
   query,
   startAfter,
   where,
+  updateDoc,
 } from "firebase/firestore";
 import { fsdb } from "../../../firebase/config";
+import toast, { Toaster } from "react-hot-toast";
 
 const PAGE_SIZE = 5;
 
@@ -30,9 +33,10 @@ const Table: React.FC = () => {
       limit(PAGE_SIZE),
     );
     const querySnapshot = await getDocs(q);
-    const ticketsList: TicketData[] = querySnapshot.docs.map(
-      (doc) => doc.data() as TicketData,
-    );
+    const ticketsList: TicketData[] = querySnapshot.docs.map((doc) => ({
+      ...doc.data(),
+      id: doc.id,
+    })) as TicketData[];
 
     setTickets(ticketsList);
     setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
@@ -50,9 +54,10 @@ const Table: React.FC = () => {
         limit(PAGE_SIZE),
       );
       const querySnapshot = await getDocs(q);
-      const ticketsList: TicketData[] = querySnapshot.docs.map(
-        (doc) => doc.data() as TicketData,
-      );
+      const ticketsList: TicketData[] = querySnapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      })) as TicketData[];
 
       const remainingTicketsQuery = query(
         collection(fsdb, "registrations"),
@@ -60,9 +65,12 @@ const Table: React.FC = () => {
         limit(PAGE_SIZE),
       );
       const remaningQuerySnapshot = await getDocs(remainingTicketsQuery);
-      const remainingTickets: TicketData[] = remaningQuerySnapshot.docs
-        .map((doc) => doc.data() as TicketData)
-        .filter((ticket) => ticket.ticket.ticketId !== search);
+      const remainingTickets: TicketData[] = remaningQuerySnapshot.docs.map(
+        (doc) => ({
+          ...doc.data(),
+          id: doc.id,
+        }),
+      ) as TicketData[];
 
       setTickets([...ticketsList, ...remainingTickets]);
       setLastVisible(
@@ -86,15 +94,42 @@ const Table: React.FC = () => {
         limit(PAGE_SIZE),
       );
       const querySnapshot = await getDocs(q);
-      const ticketsList: TicketData[] = querySnapshot.docs.map(
-        (doc) => doc.data() as TicketData,
-      );
+      const ticketsList: TicketData[] = querySnapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      })) as TicketData[];
       setTickets((prevTickets) => [...prevTickets, ...ticketsList]);
       setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
       setHasMore(querySnapshot.docs.length === PAGE_SIZE);
       setLoading(false);
     }
   }, [lastVisible, isLoading, hasMore]);
+
+  const updateRegister = async (docId: string, ticketId: string) => {
+    setLoading(true);
+    try {
+      const ticketRef = doc(fsdb, "registrations", docId);
+      const ticketIndex = tickets.findIndex((ticket) => ticket.id === docId);
+      if (ticketIndex !== -1) {
+        const updatedTicket = {
+          ...tickets[ticketIndex],
+          registered: !tickets[ticketIndex].registered,
+        };
+        await updateDoc(ticketRef, { registered: updatedTicket.registered });
+        setTickets((prevTickets) =>
+          prevTickets.map((ticket, index) =>
+            index === ticketIndex ? updatedTicket : ticket,
+          ),
+        );
+      }
+      toast.success(`Updated Ticket ${ticketId}`);
+    } catch (error) {
+      console.error("Error updating document", error);
+      toast.error("Error updating document");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     initFetch();
@@ -148,7 +183,7 @@ const Table: React.FC = () => {
                 className="px-4 py-2 text-white rounded bg-blue-500 disabled:bg-blue-400"
                 disabled={isLoading}
               >
-                Search
+                {isLoading ? "Loading..." : "Search"}
               </button>
             </div>
           </form>
@@ -157,7 +192,7 @@ const Table: React.FC = () => {
             onClick={initFetch}
             disabled={isLoading}
           >
-            Refresh
+            {isLoading ? "Loading..." : "Refresh"}
           </button>
         </div>
 
@@ -205,12 +240,15 @@ const Table: React.FC = () => {
                     )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 group-hover:bg-indigo-100">
-                    <a
-                      href="#"
-                      className="inline-block rounded bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700"
+                    <button
+                      className="inline-block rounded bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:bg-indigo-400"
+                      disabled={isLoading}
+                      onClick={() =>
+                        updateRegister(ticket.id, ticket.ticket.ticketId)
+                      }
                     >
-                      View
-                    </a>
+                      {isLoading ? "Loading..." : "Register"}
+                    </button>
                   </td>
                 </tr>
               );
@@ -227,6 +265,7 @@ const Table: React.FC = () => {
           </button>
         )}
       </div>
+      <Toaster />
     </div>
   );
 };
