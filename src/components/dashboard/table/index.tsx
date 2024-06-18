@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { FaCheck, FaXmark } from "react-icons/fa6";
 import { TicketData } from "../../../firebase/firestore";
 import {
   Timestamp,
@@ -12,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { fsdb } from "../../../firebase/config";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 const Table: React.FC = () => {
   const [tickets, setTickets] = useState<TicketData[]>([]);
@@ -80,7 +81,7 @@ const Table: React.FC = () => {
       setLoading(true);
       const q = query(
         collection(fsdb, "registrations"),
-        orderBy("tickets.ticketId"),
+        orderBy("ticket.ticketId"),
         startAfter(lastVisible),
         limit(PAGE_SIZE),
       );
@@ -111,14 +112,24 @@ const Table: React.FC = () => {
     }
   };
 
+  const formatDate = (timestamp: Timestamp | string): string => {
+    const date =
+      timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
+    const options: Intl.DateTimeFormatOptions = {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    };
+    return date.toLocaleDateString("en-GB", options);
+  };
+
   return (
     <div>
-      <h1 className="text-4xl text-center font-semibold">
-        Ticket Registration
-      </h1>
+      <h1 className="text-4xl text-center font-semibold">Ticket Registry</h1>
 
       <div className="overflow-x-auto p-16">
-        <div className="flex gap-4 pb-8">
+        <div className="flex gap-4 pb-8 justify-center">
           <form onSubmit={handleSearchSubmit}>
             <label htmlFor="search" className="sr-only">
               Ticket ID
@@ -134,34 +145,36 @@ const Table: React.FC = () => {
               />
               <button
                 type="submit"
-                className="px-4 py-2 text-white rounded bg-blue-500"
+                className="px-4 py-2 text-white rounded bg-blue-500 disabled:bg-blue-400"
+                disabled={isLoading}
               >
                 Search
               </button>
             </div>
           </form>
           <button
-            className="px-4 py-2 text-white rounded bg-indigo-500"
+            className="px-4 py-2 text-white rounded bg-indigo-500 disabled:bg-indigo-400"
             onClick={initFetch}
+            disabled={isLoading}
           >
             Refresh
           </button>
         </div>
 
-        <table className="min-w-full divide-y-2 divide-gray-200 bg-white text-sm text-center">
+        <table className="min-w-full divide-y-2 divide-gray-200 bg-white text-md text-center">
           <thead className="ltr:text-left rtl:text-right">
             <tr>
-              <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
-                Student ID
-              </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
                 Ticket ID
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
-                Registered
+                Student ID
               </th>
               <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
                 Created Time
+              </th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
+                Registered
               </th>
               <th className="px-4 py-2"></th>
             </tr>
@@ -169,25 +182,29 @@ const Table: React.FC = () => {
 
           <tbody className="divide-y divide-gray-200">
             {tickets.map((ticket, index) => {
-              const createdAt =
-                ticket.createdAt instanceof Timestamp
-                  ? ticket.createdAt.toDate().toString()
-                  : ticket.createdAt;
               return (
-                <tr key={index}>
-                  <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
-                    {ticket.ticket.studentId}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-gray-700">
+                <tr key={index} className="group">
+                  <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-700 group-hover:bg-indigo-100">
                     {ticket.ticket.ticketId}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-gray-700">
-                    {ticket.registered ? <span>Yes</span> : <span>No</span>}
+                  <td className="whitespace-nowrap px-4 py-2 text-gray-900 group-hover:bg-indigo-100">
+                    {ticket.ticket.studentId}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-gray-700">
-                    {createdAt}
+                  <td className="whitespace-nowrap px-4 py-2 text-gray-700 group-hover:bg-indigo-100">
+                    {formatDate(ticket.createdAt)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2">
+                  <td className="whitespace-nowrap px-4 py-2  group-hover:bg-indigo-100">
+                    {ticket.registered ? (
+                      <span className="text-green-500 flex items-center justify-center">
+                        <FaCheck />
+                      </span>
+                    ) : (
+                      <span className="text-red-500 flex items-center justify-center">
+                        <FaXmark />
+                      </span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2 group-hover:bg-indigo-100">
                     <a
                       href="#"
                       className="inline-block rounded bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700"
