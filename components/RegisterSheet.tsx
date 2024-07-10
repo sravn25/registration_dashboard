@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Ticket, Upload } from "lucide-react";
+import { Ticket, Upload, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -23,6 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from "./ui/form";
+import { checkDuplicate, registerTicket } from "@/lib/firestoreService";
 import toast, { Toaster } from "react-hot-toast";
 
 const formSchema = z.object({
@@ -33,6 +34,16 @@ const formSchema = z.object({
     message: "Student ID must be 7 digits",
   }),
 });
+
+const getCurrentDateTime = (): string => {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+
+  return `${day}/${month}, ${hours}:${minutes}`;
+};
 
 export default function RegisterSheet() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -47,68 +58,98 @@ export default function RegisterSheet() {
 
   const submitHandler = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
-    console.log(values);
+    const createdAt = getCurrentDateTime();
+    const registered = false;
+    const ticket = { ...values, createdAt, registered };
+    try {
+      const studentIdDuplicate = await checkDuplicate(ticket.studentId);
+      if (studentIdDuplicate) {
+        toast.error("Student ID already exists!");
+        setLoading(false);
+        return;
+      }
+      await registerTicket(ticket);
+      toast.success(`Ticket ${ticket.ticketNumber} registered successfully`);
+      form.reset();
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to register ticket");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button
-          variant="default"
-          className="m-6 bg-indigo-500 hover:bg-indigo-700"
-        >
-          <Ticket className="h-6 w-auto pr-2" />
-          Click Here to Register Ticket
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left">
-        <SheetHeader className="pb-6">
-          <SheetTitle>Ticket Registration</SheetTitle>
-          <SheetDescription>
-            Register new tickets here. Click register when you&apos;re done.
-          </SheetDescription>
-        </SheetHeader>
-
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(submitHandler)}
-            className="space-y-4"
+    <>
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="default"
+            className="m-6 bg-indigo-500 hover:bg-indigo-700"
           >
-            <FormField
-              control={form.control}
-              name="ticketNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ticket Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="00001" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="studentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Student ID</FormLabel>
-                  <FormControl>
-                    <Input placeholder="0347000" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end">
-              <Button type="submit">
-                <Upload className="h-4 w-auto pr-2" />
-                Register
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </SheetContent>
-    </Sheet>
+            <Ticket className="h-6 w-auto pr-2" />
+            Click Here to Register Ticket
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left">
+          <SheetHeader className="pb-6">
+            <SheetTitle>Ticket Registration</SheetTitle>
+            <SheetDescription>
+              Register new tickets here. Click register when you&apos;re done.
+            </SheetDescription>
+          </SheetHeader>
+
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(submitHandler)}
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="ticketNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ticket Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="00001" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="studentId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Student ID</FormLabel>
+                    <FormControl>
+                      <Input placeholder="0347000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end">
+                <Button type="submit" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Register
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </SheetContent>
+        <Toaster />
+      </Sheet>
+    </>
   );
 }

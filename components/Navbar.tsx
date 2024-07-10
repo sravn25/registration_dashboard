@@ -20,9 +20,8 @@ const Navbar = () => {
   return (
     <>
       <div className="flex justify-between items-center p-6">
-        <PartyPopper className="h-12 w-auto text-indigo-600" />
         <h1 className="text-3xl text-center font-extrabold block bg-gradient-to-r from-indigo-600 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-          OP Registration Dashboard
+          Orientation Party Registration Dashboard
         </h1>
         <Button onClick={handleSignOut}>
           <LogOut className="h-6 w-6 pr-2" />
