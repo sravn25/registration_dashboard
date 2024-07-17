@@ -1,16 +1,7 @@
 "use client";
 import { ColumnDef } from "@tanstack/react-table";
 import { TicketData } from "@/lib/firestoreService";
-import { Check, X, MoreHorizontal } from "lucide-react";
-import { Button } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Check, X } from "lucide-react";
 
 export const TicketColumns: ColumnDef<TicketData>[] = [
   {

@@ -25,6 +25,7 @@ import {
 } from "./ui/form";
 import { checkDuplicate, registerTicket } from "@/lib/firestoreService";
 import toast, { Toaster } from "react-hot-toast";
+import { useRegistrationData } from "@/context/RegistrationContext";
 
 const formSchema = z.object({
   ticketNumber: z.string().min(5, {
@@ -46,6 +47,7 @@ const getCurrentDateTime = (): string => {
 };
 
 export default function RegisterSheet() {
+  const { fetchData } = useRegistrationData();
   const [loading, setLoading] = useState<boolean>(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -71,6 +73,7 @@ export default function RegisterSheet() {
       await registerTicket(ticket);
       toast.success(`Ticket ${ticket.ticketNumber} registered successfully`);
       form.reset();
+      fetchData();
     } catch (error) {
       console.log(error);
       toast.error("Failed to register ticket");

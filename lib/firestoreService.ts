@@ -6,6 +6,7 @@ import {
   getDoc,
   getDocs,
   query,
+  updateDoc,
 } from "firebase/firestore";
 
 export interface TicketData {
@@ -45,5 +46,20 @@ export const getAllRegistrations = async (): Promise<TicketData[]> => {
   } catch (error) {
     console.error("error fetching registration", error);
     throw error;
+  }
+};
+
+export const updateRegistered = async (
+  studentId: string,
+  registered: boolean,
+) => {
+  try {
+    const docRef = doc(db, "registration", studentId);
+    await updateDoc(docRef, {
+      registered: registered,
+    });
+    console.log("Document successfully updated");
+  } catch (error) {
+    console.error("Error updating doc:", error);
   }
 };
