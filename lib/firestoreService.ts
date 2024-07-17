@@ -1,7 +1,14 @@
 import { db } from "./firebaseConfig";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  getDocs,
+  query,
+} from "firebase/firestore";
 
-interface TicketData {
+export interface TicketData {
   ticketNumber: string;
   studentId: string;
   createdAt: string;
@@ -24,4 +31,19 @@ export const checkDuplicate = async (studentId: string): Promise<boolean> => {
   const docRef = doc(db, "registration", studentId);
   const docSnap = await getDoc(docRef);
   return docSnap.exists();
+};
+
+export const getAllRegistrations = async (): Promise<TicketData[]> => {
+  try {
+    const registrationCollection = collection(db, "registration");
+    const registrationQuery = query(registrationCollection);
+    const registrationSnapshot = await getDocs(registrationQuery);
+    const registrationList = registrationSnapshot.docs.map(
+      (doc) => doc.data() as TicketData,
+    );
+    return registrationList;
+  } catch (error) {
+    console.error("error fetching registration", error);
+    throw error;
+  }
 };
