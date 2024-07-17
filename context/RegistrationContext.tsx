@@ -12,6 +12,8 @@ import {
   TicketData,
   getAllRegistrations,
   updateRegistered,
+  getRegisteredCount,
+  deleteTicket,
 } from "@/lib/firestoreService";
 import { Loader2 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
@@ -24,6 +26,8 @@ type RegistrationContextType = {
     registered: boolean,
     ticketNumber: string,
   ) => Promise<void>;
+  handleDelete: (studentId: string) => Promise<void>;
+  registeredCount: number;
 };
 
 const RegistrationContext = createContext<RegistrationContextType | undefined>(
@@ -43,6 +47,7 @@ export const useRegistrationData = () => {
 export const RegistrationProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [data, setData] = useState<TicketData[]>([]);
+  const [registeredCount, setRegisteredCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -59,9 +64,26 @@ export const RegistrationProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     await updateRegistered(studentId, registered);
     toast.success(
-      `Successfully ${registered ? "registered" : "unregistered"} ticket number: ${ticketNumber}`,
+      `Successfully ${registered ? "registered" : "unregistered"} ticket number: ${ticketNumber} for student ID: ${studentId}`,
     );
     fetchData();
+    getRegisterCount();
+  };
+
+  const handleDelete = async (studentId: string) => {
+    try {
+      await deleteTicket(studentId);
+      toast.success(`Ticket of student ID ${studentId} deleted successfully!`);
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to delete ticket");
+      console.error("Error deleting ticket: ", error);
+    }
+  };
+
+  const getRegisterCount = async () => {
+    const count = await getRegisteredCount();
+    setRegisteredCount(count);
   };
 
   useEffect(() => {
@@ -72,6 +94,7 @@ export const RegistrationProvider = ({ children }: { children: ReactNode }) => {
     }
     try {
       fetchData();
+      getRegisterCount();
     } catch (error) {
       console.error(error);
     } finally {
@@ -80,7 +103,9 @@ export const RegistrationProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   return (
-    <RegistrationContext.Provider value={{ data, fetchData, handleUpdate }}>
+    <RegistrationContext.Provider
+      value={{ data, fetchData, handleUpdate, handleDelete, registeredCount }}
+    >
       {loading ? <Loader2 className="mr-2 h-16 w-16 animate-spin" /> : children}
       <Toaster />
     </RegistrationContext.Provider>

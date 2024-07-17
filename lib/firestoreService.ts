@@ -7,6 +7,8 @@ import {
   getDocs,
   query,
   updateDoc,
+  increment,
+  deleteDoc,
 } from "firebase/firestore";
 
 export interface TicketData {
@@ -59,7 +61,46 @@ export const updateRegistered = async (
       registered: registered,
     });
     console.log("Document successfully updated");
+
+    const counterRef = doc(db, "counter", "tickets");
+    await setDoc(counterRef, {
+      registeredCount: increment(registered ? 1 : -1),
+    });
   } catch (error) {
     console.error("Error updating doc:", error);
+  }
+};
+
+export const getRegisteredCount = async () => {
+  const counterRef = doc(db, "counter", "tickets");
+  const counterDoc = await getDoc(counterRef);
+  return counterDoc.data()?.registeredCount || 0;
+};
+
+export const deleteTicket = async (studentId: string) => {
+  try {
+    const ticketRef = doc(db, "registration", studentId);
+    const ticketDoc = await getDoc(ticketRef);
+
+    if (ticketDoc.exists()) {
+      const ticketData = ticketDoc.data();
+      const registered = ticketData.registered;
+
+      await deleteDoc(ticketRef);
+      console.log("successfully deleted", studentId);
+
+      if (registered) {
+        const counterRef = doc(db, "counter", "tickets");
+        await updateDoc(counterRef, {
+          registeredCount: increment(-1),
+        });
+        console.log("counter updated");
+      }
+    } else {
+      console.log("no exist");
+      throw new Error("Ticket not found");
+    }
+  } catch (error) {
+    console.error("Error deleting ticket");
   }
 };
