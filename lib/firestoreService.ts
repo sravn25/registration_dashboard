@@ -9,6 +9,7 @@ import {
   updateDoc,
   increment,
   deleteDoc,
+  getDocFromCache,
 } from "firebase/firestore";
 
 export interface TicketData {
@@ -51,6 +52,16 @@ export const getAllRegistrations = async (): Promise<TicketData[]> => {
   }
 };
 
+export const getCurrentDateTime = (): string => {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+
+  return `${day}/${month}, ${hours}:${minutes}`;
+};
+
 export const updateRegistered = async (
   studentId: string,
   registered: boolean,
@@ -59,13 +70,19 @@ export const updateRegistered = async (
     const docRef = doc(db, "registration", studentId);
     await updateDoc(docRef, {
       registered: registered,
+      createdAt: getCurrentDateTime(),
     });
     console.log("Document successfully updated");
 
     const counterRef = doc(db, "counter", "tickets");
-    await setDoc(counterRef, {
-      registeredCount: increment(registered ? 1 : -1),
-    });
+    const counterDoc = await getDoc(counterRef);
+    if (!counterDoc.exists()) {
+      await setDoc(counterRef, { registeredCount: registered ? 1 : 0 });
+    } else {
+      await updateDoc(counterRef, {
+        registeredCount: increment(registered ? 1 : -1),
+      });
+    }
   } catch (error) {
     console.error("Error updating doc:", error);
   }
@@ -91,10 +108,13 @@ export const deleteTicket = async (studentId: string) => {
 
       if (registered) {
         const counterRef = doc(db, "counter", "tickets");
-        await updateDoc(counterRef, {
-          registeredCount: increment(-1),
-        });
-        console.log("counter updated");
+        const counterDoc = await getDoc(counterRef);
+        if (counterDoc.exists()) {
+          await updateDoc(counterRef, {
+            registeredCount: increment(-1),
+          });
+          console.log("Counter updated");
+        }
       }
     } else {
       console.log("no exist");

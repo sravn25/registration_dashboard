@@ -8,7 +8,7 @@ import { RegistrationProvider } from "@/context/RegistrationContext";
 const RegistrationManager = () => {
   return (
     <RegistrationProvider>
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto">
         <RegisterSheet />
         <TicketTable />
       </div>

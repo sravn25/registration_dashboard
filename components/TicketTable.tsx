@@ -10,12 +10,12 @@ import {
   DropdownMenuLabel,
 } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
-import { MoreHorizontal, Trash } from "lucide-react";
+import { MoreHorizontal, RefreshCw, Trash } from "lucide-react";
 import { useRegistrationData } from "@/context/RegistrationContext";
 import { Badge } from "./ui/badge";
 
 const TicketTable = () => {
-  const { data, handleUpdate, handleDelete, registeredCount } =
+  const { data, handleUpdate, handleDelete, handleRefresh, registeredCount } =
     useRegistrationData();
 
   return (
@@ -28,6 +28,12 @@ const TicketTable = () => {
         <div className="flex items-center gap-2">
           Registered count:
           <Badge>{registeredCount < 0 ? 0 : registeredCount}</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
         </div>
       </div>
       <DataTable

@@ -28,6 +28,7 @@ type RegistrationContextType = {
   ) => Promise<void>;
   handleDelete: (studentId: string) => Promise<void>;
   registeredCount: number;
+  handleRefresh: () => Promise<void>;
 };
 
 const RegistrationContext = createContext<RegistrationContextType | undefined>(
@@ -66,15 +67,14 @@ export const RegistrationProvider = ({ children }: { children: ReactNode }) => {
     toast.success(
       `Successfully ${registered ? "registered" : "unregistered"} ticket number: ${ticketNumber} for student ID: ${studentId}`,
     );
-    fetchData();
-    getRegisterCount();
+    handleRefresh();
   };
 
   const handleDelete = async (studentId: string) => {
     try {
       await deleteTicket(studentId);
       toast.success(`Ticket of student ID ${studentId} deleted successfully!`);
-      fetchData();
+      handleRefresh();
     } catch (error) {
       toast.error("Failed to delete ticket");
       console.error("Error deleting ticket: ", error);
@@ -84,6 +84,11 @@ export const RegistrationProvider = ({ children }: { children: ReactNode }) => {
   const getRegisterCount = async () => {
     const count = await getRegisteredCount();
     setRegisteredCount(count);
+  };
+
+  const handleRefresh = () => {
+    fetchData();
+    getRegisterCount();
   };
 
   useEffect(() => {
@@ -104,7 +109,14 @@ export const RegistrationProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <RegistrationContext.Provider
-      value={{ data, fetchData, handleUpdate, handleDelete, registeredCount }}
+      value={{
+        data,
+        fetchData,
+        handleUpdate,
+        handleDelete,
+        handleRefresh,
+        registeredCount,
+      }}
     >
       {loading ? <Loader2 className="mr-2 h-16 w-16 animate-spin" /> : children}
       <Toaster />

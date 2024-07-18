@@ -24,7 +24,7 @@ export const TicketColumns: ColumnDef<TicketData>[] = [
   },
   {
     accessorKey: "createdAt",
-    header: "Created At",
+    header: "Updated At",
   },
   {
     accessorKey: "registered",

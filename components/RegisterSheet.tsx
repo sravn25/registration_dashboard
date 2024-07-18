@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from "./ui/form";
-import { checkDuplicate, registerTicket } from "@/lib/firestoreService";
+import { checkDuplicate, getCurrentDateTime, registerTicket } from "@/lib/firestoreService";
 import toast, { Toaster } from "react-hot-toast";
 import { useRegistrationData } from "@/context/RegistrationContext";
 
@@ -35,16 +35,6 @@ const formSchema = z.object({
     message: "Student ID must be 7 digits",
   }),
 });
-
-const getCurrentDateTime = (): string => {
-  const now = new Date();
-  const day = String(now.getDate()).padStart(2, "0");
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-
-  return `${day}/${month}, ${hours}:${minutes}`;
-};
 
 export default function RegisterSheet() {
   const { fetchData } = useRegistrationData();
